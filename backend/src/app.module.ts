@@ -15,7 +15,7 @@ import { UserModule } from '@/user/user.module';
 
       useFactory: (configService: ConfigService) => ({
         dialect: 'postgres',
-        url: configService.get<string>('DATABASE_URL'),
+        uri: configService.get<string>('DATABASE_URL'),
         autoLoadModels: true,
         synchronize: false,
         logging: false,
