@@ -1,28 +1,29 @@
-import * as bcrypt from 'bcrypt';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import { Sequelize, Transaction } from 'sequelize';
+import * as bcrypt from 'bcrypt';
 
-import { UserModel } from '@/user/models/user.model'
-import { Sequelize } from 'sequelize';
+import { UserModel } from '@/user/models/user.model';
+import { UserStatus } from '@/common/enum';
 
 @Injectable()
 export class UserService {
     private readonly logger = new Logger(UserService.name);
 
     constructor(
-        @InjectModel(UserModel) 
+        @InjectModel(UserModel)
         private userModel: typeof UserModel,
-        @InjectConnection() 
-        private readonly sequelize: Sequelize
+        @InjectConnection()
+        private readonly sequelize: Sequelize,
     ) {}
 
     async create(
         first_name: string,
         last_name: string,
         email: string,
-        password: string
+        password: string,
+        transaction: Transaction,
     ) {
-        const transaction = await this.sequelize.transaction();
         try {
             this.logger.log(`Creating user with email: ${email}`);
 
@@ -33,42 +34,70 @@ export class UserService {
                     first_name,
                     last_name,
                     email,
-                    password: hashedPassword
+                    password: hashedPassword,
                 },
-                { transaction }
+                { transaction },
             );
 
-            await transaction.commit();
-            this.logger.log(`Successfully created user with email: ${createdUser.dataValues.email}`);
-            return { message: 'Successfully created user', data: { id: createdUser.dataValues.id, email: createdUser.dataValues.email } };
+            this.logger.log(
+                `Successfully created user with email: ${createdUser.email}`,
+            );
+            return {
+                message: 'Successfully created user',
+                data: { id: createdUser.id, email: createdUser.email },
+            };
         } catch (error) {
-            await transaction.rollback();
-            this.logger.error(`Error creating user with email: ${email}`, error);
+            this.logger.error(
+                `Error creating user with email: ${email}`,
+                error,
+            );
             throw error;
         }
     }
 
     async validateCredentials(email: string, password: string) {
         try {
-            this.logger.log(`Validating credentials for user with email: ${email}`);
+            this.logger.log(
+                `Validating credentials for user with email: ${email}`,
+            );
 
             const user = await this.findByEmail(email);
-        
+
             if (!user) {
-                this.logger.warn(`Credential validation failed for email: ${email} - User not found`);
+                this.logger.warn(
+                    `Credential validation failed for email: ${email} - User not found`,
+                );
                 return null;
             }
 
-            const isMatch = await bcrypt.compare(password, user.dataValues.password);
+            const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                this.logger.warn(`Credential validation failed for email: ${email} - Invalid password`);
+                this.logger.warn(
+                    `Credential validation failed for email: ${email} - Invalid password`,
+                );
                 return null;
             }
 
-            this.logger.log(`Credentials validated for email: ${user.dataValues.email}`);
-            return { message: 'Credentials validated successfully', data: { id: user.dataValues.id, email: user.dataValues.email } };
+            if (!user.is_email_verified) {
+                this.logger.warn(
+                    `Credential validation failed for email: ${email} - User email is not yet verified`,
+                );
+                return {
+                    message: `User email is not yet verified: ${email}`,
+                    data: { status: UserStatus.Unverified },
+                };
+            }
+
+            this.logger.log(`Credentials validated for email: ${user.email}`);
+            return {
+                message: 'Credentials validated successfully',
+                data: { id: user.id, email: user.email },
+            };
         } catch (error) {
-            this.logger.error(`Error validating credentials for email: ${email}`, error);
+            this.logger.error(
+                `Error validating credentials for email: ${email}`,
+                error,
+            );
             throw error;
         }
     }
