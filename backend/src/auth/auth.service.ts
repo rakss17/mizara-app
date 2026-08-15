@@ -224,8 +224,81 @@ export class AuthService {
             };
         } catch (error) {
             await transaction.rollback();
+
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+
             this.logger.error(
                 `Error verifying email for user: ${email}`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    async resendVerificationCode(email: string) {
+        const transaction = await this.sequelize.transaction();
+        try {
+            this.logger.log(`Resending verification code for user: ${email}`);
+            const user = await this.userService.findByEmail(email);
+
+            if (!user) {
+                this.logger.warn(`User not found for email: ${email}`);
+                throw new NotFoundException('User not found.');
+            }
+
+            if (user.is_email_verified) {
+                this.logger.warn(
+                    `Email is already verified for user: ${email}`,
+                );
+                throw new BadRequestException('Email is already verified.');
+            }
+
+            const latestVerification =
+                await this.emailVerificationModel.findOne({
+                    where: {
+                        user_id: user.id,
+                    },
+                    order: [['created_at', 'DESC']],
+                });
+
+            if (latestVerification) {
+                const cooldown =
+                    Date.now() - latestVerification.created_at.getTime();
+
+                if (cooldown < 60 * 1000) {
+                    this.logger.warn(
+                        `Resend verification code request too soon for user: ${email}`,
+                    );
+                    throw new BadRequestException(
+                        'Please wait before requesting another code.',
+                    );
+                }
+            }
+
+            await this.createEmailVerificationCode(
+                user.id,
+                user.email,
+                transaction,
+            );
+
+            await transaction.commit();
+
+            this.logger.log(`Verification code resent for user: ${email}`);
+
+            return {
+                message: `A new verification code has been sent to ${user.email}`,
+            };
+        } catch (error) {
+            await transaction.rollback();
+
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+
+            this.logger.error(
+                `Error resending verification code for user: ${email}`,
                 error,
             );
             throw error;

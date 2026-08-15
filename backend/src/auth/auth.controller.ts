@@ -4,6 +4,7 @@ import { AuthService } from '@/auth/auth.service';
 import { SignupDto } from '@/auth/dto/signup.dto';
 import { SigninDto } from '@/auth/dto/signin.dto';
 import { VerifyEmailDto } from '@/auth/dto/verify-email.dto';
+import { ResendVerificationCodeDto } from '@/auth/dto/resend-verification.dto';
 
 @Controller('/api/auth')
 export class AuthController {
@@ -33,5 +34,11 @@ export class AuthController {
             verifyEmailDto.email,
             verifyEmailDto.code,
         );
+    }
+
+    @Post('resend-verification-code')
+    @HttpCode(HttpStatus.OK)
+    async resendVerificationCode(@Body() dto: ResendVerificationCodeDto) {
+        return this.authService.resendVerificationCode(dto.email);
     }
 }
