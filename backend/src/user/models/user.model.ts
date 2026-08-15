@@ -1,21 +1,36 @@
-import { Table, Model, IsUUID, PrimaryKey, Default, DataType, Column, UpdatedAt, CreatedAt, DeletedAt } from "sequelize-typescript";
+import {
+    Table,
+    Model,
+    IsUUID,
+    PrimaryKey,
+    Default,
+    DataType,
+    Column,
+    UpdatedAt,
+    CreatedAt,
+    DeletedAt,
+    HasMany,
+} from 'sequelize-typescript';
+
+import { EmailVerificationModel } from '@/auth/models/email-verification.model';
 
 interface User {
-    id?: string,
-    first_name: string,
-    last_name: string,
-    email: string,
-    password: string,
-    created_at?: Date | null,
-    updated_at?: Date | null,
-    deleted_at?: Date | null
+    id?: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    is_email_verified?: boolean;
+    created_at?: Date | null;
+    updated_at?: Date | null;
+    deleted_at?: Date | null;
 }
 
 @Table({
     tableName: 'Users',
     underscored: true,
     timestamps: true,
-    paranoid: true
+    paranoid: true,
 })
 export class UserModel extends Model<User> {
     @IsUUID(4)
@@ -25,43 +40,49 @@ export class UserModel extends Model<User> {
     declare id: string;
 
     @Column({
-    type: DataType.STRING,
-    allowNull: false,
+        type: DataType.STRING,
+        allowNull: false,
     })
-    first_name!: string;
+    declare first_name: string;
 
     @Column({
-    type: DataType.STRING,
-    allowNull: false,
+        type: DataType.STRING,
+        allowNull: false,
     })
-    last_name!: string;
+    declare last_name: string;
 
     @Column({
-    type: DataType.STRING,
-    allowNull: false,
-    unique: true,
+        type: DataType.STRING,
+        allowNull: false,
+        unique: true,
     })
-    email!: string;
+    declare email: string;
 
     @Column({
-    type: DataType.STRING,
-    allowNull: false,
+        type: DataType.STRING,
+        allowNull: false,
     })
-    password!: string;
+    declare password: string;
 
     @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
+        type: DataType.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
     })
-    is_email_verified!: boolean;
+    declare is_email_verified: boolean;
 
     @CreatedAt
-    created_at!: Date;
+    declare created_at: Date;
 
     @UpdatedAt
-    updated_at!: Date;
+    declare updated_at: Date;
 
     @DeletedAt
-    deleted_at!: Date;
+    declare deleted_at: Date;
+
+    @HasMany(() => EmailVerificationModel, {
+        foreignKey: 'user_id',
+        as: 'email_verification',
+    })
+    declare email_verifications: EmailVerificationModel[];
 }
