@@ -48,6 +48,31 @@ export class UserService {
         }
     }
 
+    async validateCredentials(email: string, password: string) {
+        try {
+            this.logger.log(`Validating credentials for user with email: ${email}`);
+
+            const user = await this.findByEmail(email);
+        
+            if (!user) {
+                this.logger.warn(`Credential validation failed for email: ${email} - User not found`);
+                return null;
+            }
+
+            const isMatch = await bcrypt.compare(password, user.dataValues.password);
+            if (!isMatch) {
+                this.logger.warn(`Credential validation failed for email: ${email} - Invalid password`);
+                return null;
+            }
+
+            this.logger.log(`Credentials validated for email: ${user.dataValues.email}`);
+            return { message: 'Credentials validated successfully', data: { id: user.dataValues.id, email: user.dataValues.email } };
+        } catch (error) {
+            this.logger.error(`Error validating credentials for email: ${email}`, error);
+            throw error;
+        }
+    }
+
     async findByEmail(email: string) {
         return this.userModel.findOne({ where: { email } });
     }
