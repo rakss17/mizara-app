@@ -13,6 +13,7 @@ import { Sequelize, Transaction } from 'sequelize';
 import { UserService } from '@/user/user.service';
 import { UserStatus } from '@/common/enum';
 import { EmailVerificationModel } from '@/auth/models/email-verification.model';
+import { EmailService } from '@/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     constructor(
         private readonly userService: UserService,
         private readonly jwtService: JwtService,
+        private readonly emailService: EmailService,
         @InjectModel(EmailVerificationModel)
         private readonly emailVerificationModel: typeof EmailVerificationModel,
         @InjectConnection()
@@ -53,7 +55,7 @@ export class AuthService {
                 transaction,
             );
 
-            await this.createEmailVerificationCode(
+            await this.createAndSendVerificationCode(
                 createdUser.data.id!,
                 email,
                 transaction,
@@ -120,7 +122,7 @@ export class AuthService {
         };
     }
 
-    private async createEmailVerificationCode(
+    private async createAndSendVerificationCode(
         userId: string,
         email: string,
         transaction: Transaction,
@@ -142,10 +144,11 @@ export class AuthService {
             { transaction },
         );
 
-        //TODO: Send email here
-        console.log(`Verification code for ${email}: ${code}`);
-
         this.logger.log(`Email verification code created for user: ${email}`);
+
+        await this.emailService.sendVerificationCode(email, code);
+
+        this.logger.log(`Email verification code sent to user: ${email}`);
     }
 
     async verifyEmail(email: string, code: string) {
@@ -277,7 +280,7 @@ export class AuthService {
                 }
             }
 
-            await this.createEmailVerificationCode(
+            await this.createAndSendVerificationCode(
                 user.id,
                 user.email,
                 transaction,
