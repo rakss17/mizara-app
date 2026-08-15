@@ -28,7 +28,7 @@ export class UserService {
 
             const hashedPassword = await bcrypt.hash(password, 12);
 
-            await this.userModel.create(
+            const createdUser = await this.userModel.create(
                 {
                     first_name,
                     last_name,
@@ -39,8 +39,8 @@ export class UserService {
             );
 
             await transaction.commit();
-            this.logger.log(`User successfully created with email: ${email}`);
-            return { message: 'Successfully created user' };
+            this.logger.log(`Successfully created user with email: ${createdUser.dataValues.email}`);
+            return { message: 'Successfully created user', data: { id: createdUser.dataValues.id, email: createdUser.dataValues.email } };
         } catch (error) {
             await transaction.rollback();
             this.logger.error(`Error creating user with email: ${email}`, error);
