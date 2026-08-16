@@ -39,7 +39,10 @@ export class EmailService {
             : process.env.DEV_EMAIL_SMTP_FROM!;
     }
 
-    async sendVerificationCode(email: string, code: string): Promise<void> {
+    async sendEmailVerificationCode(
+        email: string,
+        code: string,
+    ): Promise<void> {
         await this.transporter.sendMail({
             from: this.from,
             to: email,
@@ -47,6 +50,20 @@ export class EmailService {
             html: `
                 <h2>Verify your email</h2>
                 <p>Your verification code is:</p>
+                <h1>${code}</h1>
+                <p>This code will expire soon.</p>
+            `,
+        });
+    }
+
+    async sendPasswordResetCode(email: string, code: string): Promise<void> {
+        await this.transporter.sendMail({
+            from: this.from,
+            to: email,
+            subject: 'Reset your Mizara password',
+            html: `
+                <h2>Reset your password</h2>
+                <p>Your password reset code is:</p>
                 <h1>${code}</h1>
                 <p>This code will expire soon.</p>
             `,

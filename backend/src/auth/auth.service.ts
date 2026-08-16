@@ -12,8 +12,9 @@ import { Sequelize, Transaction } from 'sequelize';
 
 import { UserService } from '@/user/user.service';
 import { UserStatus } from '@/common/enum';
-import { EmailVerificationModel } from '@/auth/models/email-verification.model';
+import { VerificationCodeModel } from '@/auth/models/verification-code.model';
 import { EmailService } from '@/email/email.service';
+import { VerificationCodeType } from '@/common/enum';
 
 @Injectable()
 export class AuthService {
@@ -23,8 +24,8 @@ export class AuthService {
         private readonly userService: UserService,
         private readonly jwtService: JwtService,
         private readonly emailService: EmailService,
-        @InjectModel(EmailVerificationModel)
-        private readonly emailVerificationModel: typeof EmailVerificationModel,
+        @InjectModel(VerificationCodeModel)
+        private readonly verificationCodeModel: typeof VerificationCodeModel,
         @InjectConnection()
         private readonly sequelize: Sequelize,
     ) {}
@@ -56,8 +57,9 @@ export class AuthService {
             );
 
             await this.createAndSendVerificationCode(
-                createdUser.data.id!,
+                createdUser.data.id,
                 email,
+                VerificationCodeType.EmailVerification,
                 transaction,
             );
 
@@ -125,30 +127,109 @@ export class AuthService {
     private async createAndSendVerificationCode(
         userId: string,
         email: string,
+        verificationType: VerificationCodeType,
         transaction: Transaction,
     ) {
-        this.logger.log(`Creating email verification code for user: ${email}`);
+        this.logger.log(`Creating ${verificationType} code for user: ${email}`);
         const code = randomInt(100000, 1000000).toString();
 
         const codeHash = await bcrypt.hash(code, 10);
 
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-        await this.emailVerificationModel.create(
+        await this.verificationCodeModel.create(
             {
                 user_id: userId,
                 code_hash: codeHash,
                 expires_at: expiresAt,
                 attempts: 0,
+                type: verificationType,
             },
             { transaction },
         );
 
-        this.logger.log(`Email verification code created for user: ${email}`);
+        this.logger.log(`${verificationType} code created for user: ${email}`);
 
-        await this.emailService.sendVerificationCode(email, code);
+        if (verificationType === VerificationCodeType.EmailVerification) {
+            await this.emailService.sendEmailVerificationCode(email, code);
+        } else if (verificationType === VerificationCodeType.PasswordReset) {
+            await this.emailService.sendPasswordResetCode(email, code);
+        }
 
-        this.logger.log(`Email verification code sent to user: ${email}`);
+        this.logger.log(`${verificationType} code sent to user: ${email}`);
+    }
+
+    private async enforceResendCooldown(
+        userId: string,
+        type: VerificationCodeType,
+    ) {
+        const latestVerification = await this.verificationCodeModel.findOne({
+            where: { user_id: userId, type },
+            order: [['created_at', 'DESC']],
+        });
+
+        if (!latestVerification) {
+            return;
+        }
+
+        const cooldown = Date.now() - latestVerification.created_at.getTime();
+
+        if (cooldown < 60 * 1000) {
+            this.logger.warn(
+                `${type} code requested too soon for user: ${userId}`,
+            );
+            throw new BadRequestException(
+                'Please wait before requesting another code.',
+            );
+        }
+    }
+
+    private async validateVerificationCode(
+        userId: string,
+        type: VerificationCodeType,
+        code: string,
+    ): Promise<VerificationCodeModel> {
+        const verification = await this.verificationCodeModel.findOne({
+            where: {
+                user_id: userId,
+                type,
+                used_at: null,
+            },
+            order: [['created_at', 'DESC']],
+        });
+
+        if (!verification) {
+            this.logger.warn(
+                `No active ${type} code found for user: ${userId}`,
+            );
+            throw new BadRequestException(
+                'Invalid or expired verification code.',
+            );
+        }
+
+        if (verification.expires_at.getTime() < Date.now()) {
+            this.logger.warn(`${type} code expired for user: ${userId}`);
+            throw new BadRequestException('Verification code has expired.');
+        }
+
+        if (verification.attempts >= 5) {
+            this.logger.warn(
+                `Too many attempts for ${type} code, user: ${userId}`,
+            );
+            throw new BadRequestException(
+                'Too many attempts. Please request a new verification code.',
+            );
+        }
+
+        const isValid = await bcrypt.compare(code, verification.code_hash);
+
+        if (!isValid) {
+            this.logger.warn(`Invalid ${type} code for user: ${userId}`);
+            await verification.increment('attempts');
+            throw new BadRequestException('Invalid verification code.');
+        }
+
+        return verification;
     }
 
     async verifyEmail(email: string, code: string) {
@@ -166,42 +247,11 @@ export class AuthService {
             throw new BadRequestException('Email is already verified.');
         }
 
-        const verification = await this.emailVerificationModel.findOne({
-            where: {
-                user_id: user.id,
-                verified_at: null,
-            },
-            order: [['created_at', 'DESC']],
-        });
-
-        if (!verification) {
-            this.logger.warn(
-                `No active verification code found for user: ${email}`,
-            );
-            throw new BadRequestException('No active verification code found.');
-        }
-
-        if (verification.expires_at.getTime() < Date.now()) {
-            this.logger.warn(`Verification code expired for user: ${email}`);
-            throw new BadRequestException('Verification code has expired.');
-        }
-
-        if (verification.attempts >= 5) {
-            this.logger.warn(`Too many attempts for user: ${email}`);
-            throw new BadRequestException(
-                'Too many attempts. Please request a new verification code.',
-            );
-        }
-
-        const isValid = await bcrypt.compare(code, verification.code_hash);
-
-        if (!isValid) {
-            this.logger.warn(`Invalid verification code for user: ${email}`);
-
-            await verification.increment('attempts');
-
-            throw new BadRequestException('Invalid verification code.');
-        }
+        const verification = await this.validateVerificationCode(
+            user.id,
+            VerificationCodeType.EmailVerification,
+            code,
+        );
 
         const transaction = await this.sequelize.transaction();
 
@@ -212,7 +262,7 @@ export class AuthService {
                 transaction,
             });
 
-            verification.verified_at = new Date();
+            verification.used_at = new Date();
 
             await verification.save({
                 transaction,
@@ -258,31 +308,15 @@ export class AuthService {
                 throw new BadRequestException('Email is already verified.');
             }
 
-            const latestVerification =
-                await this.emailVerificationModel.findOne({
-                    where: {
-                        user_id: user.id,
-                    },
-                    order: [['created_at', 'DESC']],
-                });
-
-            if (latestVerification) {
-                const cooldown =
-                    Date.now() - latestVerification.created_at.getTime();
-
-                if (cooldown < 60 * 1000) {
-                    this.logger.warn(
-                        `Resend verification code request too soon for user: ${email}`,
-                    );
-                    throw new BadRequestException(
-                        'Please wait before requesting another code.',
-                    );
-                }
-            }
+            await this.enforceResendCooldown(
+                user.id,
+                VerificationCodeType.EmailVerification,
+            );
 
             await this.createAndSendVerificationCode(
                 user.id,
                 user.email,
+                VerificationCodeType.EmailVerification,
                 transaction,
             );
 
@@ -302,6 +336,121 @@ export class AuthService {
 
             this.logger.error(
                 `Error resending verification code for user: ${email}`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    async forgotPassword(email: string) {
+        const transaction = await this.sequelize.transaction();
+        try {
+            this.logger.log(`Processing forgot password for user: ${email}`);
+            const user = await this.userService.findByEmail(email);
+
+            if (!user) {
+                this.logger.warn(`User not found for email: ${email}`);
+                throw new NotFoundException('User not found.');
+            }
+
+            await this.enforceResendCooldown(
+                user.id,
+                VerificationCodeType.PasswordReset,
+            );
+
+            await this.createAndSendVerificationCode(
+                user.id,
+                user.email,
+                VerificationCodeType.PasswordReset,
+                transaction,
+            );
+
+            await transaction.commit();
+
+            this.logger.log(`Forgot password code sent for user: ${email}`);
+
+            return {
+                message: `A password reset code has been sent to ${user.email}`,
+            };
+        } catch (error) {
+            await transaction.rollback();
+
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+
+            this.logger.error(
+                `Error processing forgot password for user: ${email}`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    async verifyPasswordResetCode(email: string, code: string) {
+        this.logger.log(`Verifying password reset code for user: ${email}`);
+
+        const user = await this.userService.findByEmail(email);
+
+        if (!user) {
+            this.logger.warn(`User not found for email: ${email}`);
+            throw new NotFoundException('User not found.');
+        }
+
+        await this.validateVerificationCode(
+            user.id,
+            VerificationCodeType.PasswordReset,
+            code,
+        );
+
+        this.logger.log(`Password reset code verified for user: ${email}`);
+
+        return {
+            message: 'Password reset code verified successfully.',
+        };
+    }
+
+    async resetPassword(email: string, code: string, new_password: string) {
+        this.logger.log(`Resetting password for user: ${email}`);
+
+        const user = await this.userService.findByEmail(email);
+
+        if (!user) {
+            this.logger.warn(`User not found for email: ${email}`);
+            throw new NotFoundException('User not found.');
+        }
+
+        const verification = await this.validateVerificationCode(
+            user.id,
+            VerificationCodeType.PasswordReset,
+            code,
+        );
+
+        const transaction = await this.sequelize.transaction();
+
+        try {
+            user.password = await bcrypt.hash(new_password, 12);
+            await user.save({ transaction });
+
+            verification.used_at = new Date();
+            await verification.save({ transaction });
+
+            await transaction.commit();
+
+            this.logger.log(`Password reset successfully for user: ${email}`);
+
+            return {
+                message: 'Password has been reset successfully.',
+            };
+        } catch (error) {
+            await transaction.rollback();
+
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+
+            this.logger.error(
+                `Error resetting password for user: ${email}`,
                 error,
             );
             throw error;
