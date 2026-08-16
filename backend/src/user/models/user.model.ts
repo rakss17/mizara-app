@@ -12,7 +12,7 @@ import {
     HasMany,
 } from 'sequelize-typescript';
 
-import { EmailVerificationModel } from '@/auth/models/email-verification.model';
+import { VerificationCodeModel } from '@/auth/models/verification-code.model';
 
 interface User {
     id?: string;
@@ -80,9 +80,9 @@ export class UserModel extends Model<User> {
     @DeletedAt
     declare deleted_at: Date;
 
-    @HasMany(() => EmailVerificationModel, {
+    @HasMany(() => VerificationCodeModel, {
         foreignKey: 'user_id',
-        as: 'email_verification',
+        as: 'verification_codes',
     })
-    declare email_verifications: EmailVerificationModel[];
+    declare verification_codes: VerificationCodeModel[];
 }

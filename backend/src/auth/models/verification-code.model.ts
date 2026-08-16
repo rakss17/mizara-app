@@ -10,24 +10,26 @@ import {
 } from 'sequelize-typescript';
 
 import { UserModel } from '@/user/models/user.model';
+import { VerificationCodeType } from '@/common/enum';
 
-interface EmailVerification {
+interface VerificationCode {
     id?: string;
     user_id: string;
     code_hash: string;
+    type: VerificationCodeType;
     expires_at: Date;
     attempts: number;
-    verified_at?: Date | null;
+    used_at?: Date | null;
     created_at?: Date | null;
     updated_at?: Date | null;
 }
 
 @Table({
-    tableName: 'Email_Verifications',
+    tableName: 'Verification_Codes',
     underscored: true,
     timestamps: true,
 })
-export class EmailVerificationModel extends Model<EmailVerification> {
+export class VerificationCodeModel extends Model<VerificationCode> {
     @Column({
         type: DataType.UUID,
         defaultValue: DataType.UUIDV4,
@@ -49,6 +51,12 @@ export class EmailVerificationModel extends Model<EmailVerification> {
     declare code_hash: string;
 
     @Column({
+        type: DataType.STRING,
+        allowNull: false,
+    })
+    declare type: VerificationCodeType;
+
+    @Column({
         type: DataType.DATE,
         allowNull: false,
     })
@@ -65,7 +73,7 @@ export class EmailVerificationModel extends Model<EmailVerification> {
         type: DataType.DATE,
         allowNull: true,
     })
-    declare verified_at: Date | null;
+    declare used_at: Date | null;
 
     @CreatedAt
     declare created_at: Date;

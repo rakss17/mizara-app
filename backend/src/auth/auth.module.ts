@@ -7,7 +7,7 @@ import { AuthController } from '@/auth/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { UserModule } from '@/user/user.module';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
-import { EmailVerificationModel } from '@/auth/models/email-verification.model';
+import { VerificationCodeModel } from '@/auth/models/verification-code.model';
 import { EmailModule } from '@/email/email.module';
 
 @Module({
@@ -18,7 +18,7 @@ import { EmailModule } from '@/email/email.module';
             secret: process.env.JWT_SECRET,
             signOptions: { expiresIn: '1h' },
         }),
-        SequelizeModule.forFeature([EmailVerificationModel]),
+        SequelizeModule.forFeature([VerificationCodeModel]),
         EmailModule,
     ],
     controllers: [AuthController],
