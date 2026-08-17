@@ -4,6 +4,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { EmailModule } from '@/email/email.module';
+import { RecurringPaymentModule } from './recurring-payment/recurring-payment.module';
 
 @Module({
     imports: [
@@ -26,6 +27,7 @@ import { EmailModule } from '@/email/email.module';
         AuthModule,
         UserModule,
         EmailModule,
+        RecurringPaymentModule,
     ],
 })
 export class AppModule {}
