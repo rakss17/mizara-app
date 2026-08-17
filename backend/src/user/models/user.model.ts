@@ -13,6 +13,7 @@ import {
 } from 'sequelize-typescript';
 
 import { VerificationCodeModel } from '@/auth/models/verification-code.model';
+import { RecurringPaymentModel } from '@/recurring-payment/models/recurring-payment.model';
 
 interface User {
     id?: string;
@@ -85,4 +86,10 @@ export class UserModel extends Model<User> {
         as: 'verification_codes',
     })
     declare verification_codes: VerificationCodeModel[];
+
+    @HasMany(() => RecurringPaymentModel, {
+        foreignKey: 'user_id',
+        as: 'recurring_payments',
+    })
+    declare recurring_payments: RecurringPaymentModel[];
 }

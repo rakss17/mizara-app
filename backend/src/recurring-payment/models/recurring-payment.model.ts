@@ -1,0 +1,134 @@
+import {
+    Table,
+    Model,
+    IsUUID,
+    PrimaryKey,
+    Default,
+    DataType,
+    Column,
+    ForeignKey,
+    BelongsTo,
+    UpdatedAt,
+    CreatedAt,
+    DeletedAt,
+} from 'sequelize-typescript';
+
+import { UserModel } from '@/user/models/user.model';
+import { RecurringPaymentType } from '@/common/enum';
+
+interface RecurringPayment {
+    id?: string;
+    user_id?: string;
+    name: string;
+    type: RecurringPaymentType;
+    description?: string;
+    amount: number;
+    currency?: string;
+    billing_cycle: string;
+    is_auto_renew: boolean;
+    is_archived: boolean;
+    icon?: string;
+    due_date: Date;
+    created_at?: Date | null;
+    updated_at?: Date | null;
+    deleted_at?: Date | null;
+}
+
+@Table({
+    tableName: 'Recurring_Payments',
+    underscored: true,
+    timestamps: true,
+    paranoid: true,
+})
+export class RecurringPaymentModel extends Model<RecurringPayment> {
+    @IsUUID(4)
+    @PrimaryKey
+    @Default(DataType.UUIDV4)
+    @Column(DataType.UUID)
+    declare id: string;
+
+    @ForeignKey(() => UserModel)
+    @Column({
+        type: DataType.UUID,
+        allowNull: false,
+    })
+    declare user_id: string;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: false,
+    })
+    declare name: string;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: false,
+    })
+    declare type: RecurringPaymentType;
+
+    @Column({
+        type: DataType.TEXT,
+        allowNull: true,
+    })
+    declare description: string | null;
+
+    @Column({
+        type: DataType.DECIMAL(12, 2),
+        allowNull: false,
+    })
+    declare amount: number;
+
+    @Default('PHP')
+    @Column({
+        type: DataType.STRING,
+        allowNull: false,
+    })
+    declare currency: string;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: false,
+    })
+    declare billing_cycle: string;
+
+    @Default(true)
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+    })
+    declare is_auto_renew: boolean;
+
+    @Default(false)
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+    })
+    declare is_archived: boolean;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare icon: string | null;
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: false,
+    })
+    declare due_date: Date;
+
+    @CreatedAt
+    declare created_at: Date;
+
+    @UpdatedAt
+    declare updated_at: Date;
+
+    @DeletedAt
+    declare deleted_at: Date;
+
+    @BelongsTo(() => UserModel, {
+        foreignKey: 'user_id',
+        as: 'user',
+    })
+    declare user: UserModel;
+}
