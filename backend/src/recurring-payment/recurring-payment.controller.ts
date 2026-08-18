@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Get,
     HttpCode,
     HttpStatus,
     Post,
@@ -27,5 +28,12 @@ export class RecurringPaymentController {
         @Body() dto: CreateRecurringPaymentDto,
     ) {
         return this.recurringPaymentService.create(dto, user.id, user.email);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('')
+    @HttpCode(HttpStatus.OK)
+    async findAll(@CurrentUser() user: AuthenticatedUser) {
+        return this.recurringPaymentService.findAll(user.id, user.email);
     }
 }

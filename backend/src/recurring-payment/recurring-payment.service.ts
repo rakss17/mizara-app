@@ -62,4 +62,32 @@ export class RecurringPaymentService {
             throw error;
         }
     }
+
+    async findAll(currentUserId: string, currentUserEmail: string) {
+        try {
+            this.logger.log(
+                `Fetching recurring payments for user: ${currentUserEmail}`,
+            );
+
+            const recurringPayments =
+                await this.recurringPaymentModel.findAndCountAll({
+                    where: { user_id: currentUserId },
+                });
+
+            this.logger.log(
+                `Fetched recurring payments successfully for user: ${currentUserEmail}`,
+            );
+
+            return {
+                message: 'Fetched recurring payments successfully',
+                data: recurringPayments,
+            };
+        } catch (error) {
+            this.logger.error(
+                `Error fetching recurring payments for user: ${currentUserEmail}`,
+            );
+
+            throw error;
+        }
+    }
 }
