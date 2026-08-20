@@ -37,7 +37,7 @@ export class RecurringPaymentService {
                     amount: dto.amount,
                     currency: dto.currency,
                     billing_cycle: dto.billing_cycle,
-                    due_date: dto.due_date,
+                    due_date: new Date(dto.due_date),
                     is_auto_renew: dto.is_auto_renew,
                     is_archived: dto.is_archived,
                     icon: dto.icon,

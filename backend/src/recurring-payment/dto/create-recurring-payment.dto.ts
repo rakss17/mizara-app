@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
     IsNotEmpty,
     IsBoolean,
-    IsDateString,
     IsEnum,
     IsNumber,
     IsOptional,
@@ -12,6 +11,7 @@ import {
 } from 'class-validator';
 
 import { RecurringPaymentType } from '@/common/enum';
+import { IsDateStringWithOffset } from '@/common/validators/is-date-string-with-offset.validator';
 
 export class CreateRecurringPaymentDto {
     @ApiProperty({ example: 'Netflix' })
@@ -64,8 +64,12 @@ export class CreateRecurringPaymentDto {
     @IsString()
     icon?: string;
 
-    @ApiProperty({ example: '2026-09-01T00:00:00.000Z' })
+    @ApiProperty({
+        example: '2026-09-01T09:00:00+08:00',
+        description:
+            "ISO 8601 date-time with an explicit UTC offset (e.g. 'Z' or '+08:00'). Ambiguous local times without an offset are rejected.",
+    })
     @IsNotEmpty()
-    @IsDateString()
-    due_date!: Date;
+    @IsDateStringWithOffset()
+    due_date!: string;
 }
