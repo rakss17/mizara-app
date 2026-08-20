@@ -23,7 +23,7 @@ export class ResetPasswordDto {
     })
     code!: string;
 
-    @ApiProperty()
+    @ApiProperty({ example: 'NewP@ssw0rd!' })
     @IsNotEmpty()
     @IsString()
     @MinLength(8, {

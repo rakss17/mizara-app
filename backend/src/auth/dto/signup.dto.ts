@@ -8,21 +8,21 @@ import {
 } from 'class-validator';
 
 export class SignupDto {
-    @ApiProperty()
+    @ApiProperty({ example: 'John' })
     @IsNotEmpty()
     @IsString()
     first_name!: string;
 
-    @ApiProperty()
+    @ApiProperty({ example: 'Doe' })
     @IsNotEmpty()
     @IsString()
     last_name!: string;
 
-    @ApiProperty()
+    @ApiProperty({ example: 'user@example.com' })
     @IsEmail()
     email!: string;
 
-    @ApiProperty()
+    @ApiProperty({ example: 'P@ssw0rd!' })
     @IsNotEmpty()
     @IsString()
     @MinLength(8, {
