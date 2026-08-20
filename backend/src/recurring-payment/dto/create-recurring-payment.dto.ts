@@ -14,8 +14,6 @@ import {
 import { RecurringPaymentType } from '@/common/enum';
 
 export class CreateRecurringPaymentDto {
-    user_id!: string;
-
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
