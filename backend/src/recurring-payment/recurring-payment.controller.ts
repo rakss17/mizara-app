@@ -8,6 +8,7 @@ import {
     Query,
     UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { RecurringPaymentService } from '@/recurring-payment/recurring-payment.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
@@ -16,6 +17,8 @@ import { CreateRecurringPaymentDto } from './dto/create-recurring-payment.dto';
 import { FindAllRecurringPaymentDto } from './dto/find-all-recurring-payment.dto';
 import type { AuthenticatedUser } from '@/auth/types/authenticated-user.type';
 
+@ApiTags('Recurring Payment')
+@ApiBearerAuth()
 @Controller('/api/recurring-payment')
 export class RecurringPaymentController {
     constructor(
