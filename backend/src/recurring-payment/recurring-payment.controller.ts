@@ -5,6 +5,7 @@ import {
     HttpCode,
     HttpStatus,
     Post,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 
@@ -12,6 +13,7 @@ import { RecurringPaymentService } from '@/recurring-payment/recurring-payment.s
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { CreateRecurringPaymentDto } from './dto/create-recurring-payment.dto';
+import { FindAllRecurringPaymentDto } from './dto/find-all-recurring-payment.dto';
 import type { AuthenticatedUser } from '@/auth/types/authenticated-user.type';
 
 @Controller('/api/recurring-payment')
@@ -33,7 +35,14 @@ export class RecurringPaymentController {
     @UseGuards(JwtAuthGuard)
     @Get('')
     @HttpCode(HttpStatus.OK)
-    async findAll(@CurrentUser() user: AuthenticatedUser) {
-        return this.recurringPaymentService.findAll(user.id, user.email);
+    async findAll(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query() query: FindAllRecurringPaymentDto,
+    ) {
+        return this.recurringPaymentService.findAll(
+            user.id,
+            user.email,
+            query,
+        );
     }
 }

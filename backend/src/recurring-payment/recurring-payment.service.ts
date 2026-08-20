@@ -4,6 +4,7 @@ import { Sequelize } from 'sequelize';
 
 import { RecurringPaymentModel } from '@/recurring-payment/models/recurring-payment.model';
 import { CreateRecurringPaymentDto } from '@/recurring-payment/dto/create-recurring-payment.dto';
+import { FindAllRecurringPaymentDto } from '@/recurring-payment/dto/find-all-recurring-payment.dto';
 
 @Injectable()
 export class RecurringPaymentService {
@@ -63,15 +64,25 @@ export class RecurringPaymentService {
         }
     }
 
-    async findAll(currentUserId: string, currentUserEmail: string) {
+    async findAll(
+        currentUserId: string,
+        currentUserEmail: string,
+        query: FindAllRecurringPaymentDto,
+    ) {
         try {
             this.logger.log(
                 `Fetching recurring payments for user: ${currentUserEmail}`,
             );
 
-            const recurringPayments =
+            const page = query.page ?? 1;
+            const limit = query.limit ?? 10;
+
+            const { rows, count } =
                 await this.recurringPaymentModel.findAndCountAll({
                     where: { user_id: currentUserId },
+                    limit,
+                    offset: (page - 1) * limit,
+                    order: [['created_at', 'DESC']],
                 });
 
             this.logger.log(
@@ -80,7 +91,13 @@ export class RecurringPaymentService {
 
             return {
                 message: 'Fetched recurring payments successfully',
-                data: recurringPayments,
+                data: rows,
+                metadata: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
             };
         } catch (error) {
             this.logger.error(
