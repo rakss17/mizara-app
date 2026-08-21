@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
 import { RecurringPaymentModel } from '@/recurring-payment/models/recurring-payment.model';
 import { CreateRecurringPaymentDto } from '@/recurring-payment/dto/create-recurring-payment.dto';
@@ -91,6 +91,16 @@ export class RecurringPaymentService {
                         }),
                         ...(query.is_auto_renew !== undefined && {
                             is_auto_renew: query.is_auto_renew,
+                        }),
+                        ...(query.search && {
+                            [Op.or]: [
+                                { name: { [Op.iLike]: `%${query.search}%` } },
+                                {
+                                    description: {
+                                        [Op.iLike]: `%${query.search}%`,
+                                    },
+                                },
+                            ],
                         }),
                     },
                     limit,
