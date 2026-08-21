@@ -4,6 +4,9 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Param,
+    ParseUUIDPipe,
+    Patch,
     Post,
     Query,
     UseGuards,
@@ -15,6 +18,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { CreateRecurringPaymentDto } from './dto/create-recurring-payment.dto';
 import { FindAllRecurringPaymentDto } from './dto/find-all-recurring-payment.dto';
+import { UpdateRecurringPaymentDto } from './dto/update-recurring-payment.dto';
 import type { AuthenticatedUser } from '@/auth/types/authenticated-user.type';
 
 @ApiTags('Recurring Payment')
@@ -42,10 +46,22 @@ export class RecurringPaymentController {
         @CurrentUser() user: AuthenticatedUser,
         @Query() query: FindAllRecurringPaymentDto,
     ) {
-        return this.recurringPaymentService.findAll(
+        return this.recurringPaymentService.findAll(user.id, user.email, query);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch(':id')
+    @HttpCode(HttpStatus.OK)
+    async update(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: UpdateRecurringPaymentDto,
+    ) {
+        return this.recurringPaymentService.update(
+            id,
+            dto,
             user.id,
             user.email,
-            query,
         );
     }
 }

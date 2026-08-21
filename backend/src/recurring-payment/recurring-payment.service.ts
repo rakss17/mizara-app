@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize';
 
 import { RecurringPaymentModel } from '@/recurring-payment/models/recurring-payment.model';
 import { CreateRecurringPaymentDto } from '@/recurring-payment/dto/create-recurring-payment.dto';
 import { FindAllRecurringPaymentDto } from '@/recurring-payment/dto/find-all-recurring-payment.dto';
+import { UpdateRecurringPaymentDto } from '@/recurring-payment/dto/update-recurring-payment.dto';
 
 @Injectable()
 export class RecurringPaymentService {
@@ -102,6 +103,77 @@ export class RecurringPaymentService {
         } catch (error) {
             this.logger.error(
                 `Error fetching recurring payments for user: ${currentUserEmail}`,
+            );
+
+            throw error;
+        }
+    }
+
+    async update(
+        id: string,
+        dto: UpdateRecurringPaymentDto,
+        currentUserId: string,
+        currentUserEmail: string,
+    ) {
+        const transaction = await this.sequelize.transaction();
+        try {
+            this.logger.log(
+                `Updating recurring payment ${id} for user: ${currentUserEmail}`,
+            );
+
+            const recurringPayment = await this.recurringPaymentModel.findOne({
+                where: { id, user_id: currentUserId },
+                transaction,
+            });
+
+            if (!recurringPayment) {
+                this.logger.warn(
+                    `Recurring payment ${id} not found for user: ${currentUserEmail}`,
+                );
+                throw new NotFoundException('Recurring payment not found');
+            }
+
+            await recurringPayment.update(
+                {
+                    ...(dto.name !== undefined && { name: dto.name }),
+                    ...(dto.type !== undefined && { type: dto.type }),
+                    ...(dto.description !== undefined && {
+                        description: dto.description,
+                    }),
+                    ...(dto.amount !== undefined && { amount: dto.amount }),
+                    ...(dto.currency !== undefined && {
+                        currency: dto.currency,
+                    }),
+                    ...(dto.billing_cycle !== undefined && {
+                        billing_cycle: dto.billing_cycle,
+                    }),
+                    ...(dto.due_date !== undefined && {
+                        due_date: new Date(dto.due_date),
+                    }),
+                    ...(dto.is_auto_renew !== undefined && {
+                        is_auto_renew: dto.is_auto_renew,
+                    }),
+                    ...(dto.is_archived !== undefined && {
+                        is_archived: dto.is_archived,
+                    }),
+                    ...(dto.icon !== undefined && { icon: dto.icon }),
+                },
+                { transaction },
+            );
+
+            await transaction.commit();
+
+            this.logger.log(
+                `Successfully updated recurring payment ${id} for user: ${currentUserEmail}`,
+            );
+
+            return { message: 'Successfully updated recurring payment' };
+        } catch (error) {
+            await transaction.rollback();
+
+            this.logger.error(
+                `Error updating recurring payment ${id} for user: ${currentUserEmail}`,
+                error,
             );
 
             throw error;
