@@ -171,6 +171,10 @@ export class RecurringPaymentService {
         } catch (error) {
             await transaction.rollback();
 
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+
             this.logger.error(
                 `Error updating recurring payment ${id} for user: ${currentUserEmail}`,
                 error,
