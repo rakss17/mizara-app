@@ -42,6 +42,7 @@ export class RecurringPaymentService {
                     due_date: new Date(dto.due_date),
                     is_auto_renew: dto.is_auto_renew,
                     is_archived: dto.is_archived,
+                    is_free_trial: dto.is_free_trial,
                     icon: dto.icon,
                 },
                 { transaction },
@@ -91,6 +92,9 @@ export class RecurringPaymentService {
                         }),
                         ...(query.is_auto_renew !== undefined && {
                             is_auto_renew: query.is_auto_renew,
+                        }),
+                        ...(query.is_free_trial !== undefined && {
+                            is_free_trial: query.is_free_trial,
                         }),
                         ...(query.search && {
                             [Op.or]: [
@@ -177,6 +181,9 @@ export class RecurringPaymentService {
                     }),
                     ...(dto.is_archived !== undefined && {
                         is_archived: dto.is_archived,
+                    }),
+                    ...(dto.is_free_trial !== undefined && {
+                        is_free_trial: dto.is_free_trial,
                     }),
                     ...(dto.icon !== undefined && { icon: dto.icon }),
                 },

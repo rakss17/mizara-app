@@ -59,6 +59,11 @@ export class CreateRecurringPaymentDto {
     @IsBoolean()
     is_archived!: boolean;
 
+    @ApiProperty({ example: false, required: false, default: false })
+    @IsOptional()
+    @IsBoolean()
+    is_free_trial!: boolean;
+
     @ApiProperty({ example: 'netflix-icon', required: false })
     @IsOptional()
     @IsString()

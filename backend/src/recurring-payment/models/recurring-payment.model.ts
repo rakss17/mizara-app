@@ -27,6 +27,7 @@ interface RecurringPayment {
     billing_cycle: string;
     is_auto_renew: boolean;
     is_archived: boolean;
+    is_free_trial: boolean;
     icon?: string;
     due_date: Date;
     created_at?: Date | null;
@@ -104,6 +105,13 @@ export class RecurringPaymentModel extends Model<RecurringPayment> {
         allowNull: false,
     })
     declare is_archived: boolean;
+
+    @Default(false)
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+    })
+    declare is_free_trial: boolean;
 
     @Column({
         type: DataType.STRING,

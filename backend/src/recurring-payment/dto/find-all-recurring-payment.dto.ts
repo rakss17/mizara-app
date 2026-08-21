@@ -81,4 +81,10 @@ export class FindAllRecurringPaymentDto {
     @IsOptional()
     @IsString()
     search?: string;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @Transform(toBoolean)
+    @IsBoolean()
+    is_free_trial?: boolean;
 }
