@@ -83,7 +83,16 @@ export class RecurringPaymentService {
 
             const { rows, count } =
                 await this.recurringPaymentModel.findAndCountAll({
-                    where: { user_id: currentUserId },
+                    where: {
+                        user_id: currentUserId,
+                        ...(query.type !== undefined && { type: query.type }),
+                        ...(query.is_archived !== undefined && {
+                            is_archived: query.is_archived,
+                        }),
+                        ...(query.is_auto_renew !== undefined && {
+                            is_auto_renew: query.is_auto_renew,
+                        }),
+                    },
                     limit,
                     offset: (page - 1) * limit,
                     order: [[sortBy, sortOrder]],
