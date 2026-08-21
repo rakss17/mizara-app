@@ -6,6 +6,7 @@ import { RecurringPaymentModel } from '@/recurring-payment/models/recurring-paym
 import { CreateRecurringPaymentDto } from '@/recurring-payment/dto/create-recurring-payment.dto';
 import { FindAllRecurringPaymentDto } from '@/recurring-payment/dto/find-all-recurring-payment.dto';
 import { UpdateRecurringPaymentDto } from '@/recurring-payment/dto/update-recurring-payment.dto';
+import { RecurringPaymentSortBy, SortOrder } from '@/common/enum';
 
 @Injectable()
 export class RecurringPaymentService {
@@ -77,13 +78,15 @@ export class RecurringPaymentService {
 
             const page = query.page ?? 1;
             const limit = query.limit ?? 10;
+            const sortBy = query.sort_by ?? RecurringPaymentSortBy.DueDate;
+            const sortOrder = query.sort_order ?? SortOrder.ASC;
 
             const { rows, count } =
                 await this.recurringPaymentModel.findAndCountAll({
                     where: { user_id: currentUserId },
                     limit,
                     offset: (page - 1) * limit,
-                    order: [['created_at', 'DESC']],
+                    order: [[sortBy, sortOrder]],
                 });
 
             this.logger.log(
