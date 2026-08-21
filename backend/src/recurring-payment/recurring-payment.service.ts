@@ -183,4 +183,48 @@ export class RecurringPaymentService {
             throw error;
         }
     }
+
+    async remove(id: string, currentUserId: string, currentUserEmail: string) {
+        const transaction = await this.sequelize.transaction();
+        try {
+            this.logger.log(
+                `Deleting recurring payment ${id} for user: ${currentUserEmail}`,
+            );
+
+            const recurringPayment = await this.recurringPaymentModel.findOne({
+                where: { id, user_id: currentUserId },
+                transaction,
+            });
+
+            if (!recurringPayment) {
+                this.logger.warn(
+                    `Recurring payment ${id} not found for user: ${currentUserEmail}`,
+                );
+                throw new NotFoundException('Recurring payment not found');
+            }
+
+            await recurringPayment.destroy({ transaction });
+
+            await transaction.commit();
+
+            this.logger.log(
+                `Successfully deleted recurring payment ${id} for user: ${currentUserEmail}`,
+            );
+
+            return { message: 'Successfully deleted recurring payment' };
+        } catch (error) {
+            await transaction.rollback();
+
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+
+            this.logger.error(
+                `Error deleting recurring payment ${id} for user: ${currentUserEmail}`,
+                error,
+            );
+
+            throw error;
+        }
+    }
 }

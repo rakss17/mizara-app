@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -63,5 +64,15 @@ export class RecurringPaymentController {
             user.id,
             user.email,
         );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete(':id')
+    @HttpCode(HttpStatus.OK)
+    async remove(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseUUIDPipe) id: string,
+    ) {
+        return this.recurringPaymentService.remove(id, user.id, user.email);
     }
 }
