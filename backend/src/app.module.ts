@@ -6,6 +6,7 @@ import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { EmailModule } from '@/email/email.module';
 import { RecurringPaymentModule } from './recurring-payment/recurring-payment.module';
+import { ReminderModule } from './reminder/reminder.module';
 import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
 
 @Module({
@@ -36,6 +37,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
         UserModule,
         EmailModule,
         RecurringPaymentModule,
+        ReminderModule,
     ],
 })
 export class AppModule {}
