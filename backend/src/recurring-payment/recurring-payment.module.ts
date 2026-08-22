@@ -9,5 +9,6 @@ import { RecurringPaymentModel } from './models/recurring-payment.model';
     imports: [SequelizeModule.forFeature([RecurringPaymentModel])],
     controllers: [RecurringPaymentController],
     providers: [RecurringPaymentService],
+    exports: [RecurringPaymentService],
 })
 export class RecurringPaymentModule {}

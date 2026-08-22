@@ -30,23 +30,24 @@ export class RecurringPaymentService {
                 `Creating recurring payment for user: ${currentUserEmail}`,
             );
 
-            await this.recurringPaymentModel.create(
-                {
-                    user_id: currentUserId,
-                    name: dto.name,
-                    type: dto.type,
-                    description: dto.description,
-                    amount: dto.amount,
-                    currency: dto.currency,
-                    billing_cycle: dto.billing_cycle,
-                    due_date: new Date(dto.due_date),
-                    is_auto_renew: dto.is_auto_renew,
-                    is_archived: dto.is_archived,
-                    is_free_trial: dto.is_free_trial,
-                    icon: dto.icon,
-                },
-                { transaction },
-            );
+            const createdRecurringPayment =
+                await this.recurringPaymentModel.create(
+                    {
+                        user_id: currentUserId,
+                        name: dto.name,
+                        type: dto.type,
+                        description: dto.description,
+                        amount: dto.amount,
+                        currency: dto.currency,
+                        billing_cycle: dto.billing_cycle,
+                        due_date: new Date(dto.due_date),
+                        is_auto_renew: dto.is_auto_renew,
+                        is_archived: dto.is_archived,
+                        is_free_trial: dto.is_free_trial,
+                        icon: dto.icon,
+                    },
+                    { transaction },
+                );
 
             await transaction.commit();
 
@@ -54,7 +55,10 @@ export class RecurringPaymentService {
                 `Successfully created recurring payment for user: ${currentUserEmail}`,
             );
 
-            return { message: 'Successfully created recurring payment' };
+            return {
+                message: 'Successfully created recurring payment',
+                data: { id: createdRecurringPayment.id },
+            };
         } catch (error) {
             await transaction.rollback();
 
@@ -255,5 +259,24 @@ export class RecurringPaymentService {
 
             throw error;
         }
+    }
+
+    async findByIdAndOwnerId(
+        id: string,
+        currentUserId: string,
+        currentUserEmail: string,
+    ) {
+        const recurringPayment = await this.recurringPaymentModel.findOne({
+            where: { id: id, user_id: currentUserId },
+        });
+
+        if (!recurringPayment) {
+            this.logger.warn(
+                `Recurring payment ${id} not found for user: ${currentUserEmail}`,
+            );
+            throw new NotFoundException('Recurring payment not found');
+        }
+
+        return recurringPayment;
     }
 }
