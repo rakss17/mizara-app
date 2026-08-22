@@ -22,3 +22,14 @@ export enum SortOrder {
     ASC = 'ASC',
     DESC = 'DESC',
 }
+
+export enum ReminderOffsetDays {
+    SevenDaysBefore = 7,
+    ThreeDaysBefore = 3,
+    OneDayBefore = 1,
+    DueDay = 0,
+}
+
+export enum ReminderChannel {
+    Email = 'email',
+}

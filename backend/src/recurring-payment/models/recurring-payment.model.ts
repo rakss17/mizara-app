@@ -8,12 +8,14 @@ import {
     Column,
     ForeignKey,
     BelongsTo,
+    HasOne,
     UpdatedAt,
     CreatedAt,
     DeletedAt,
 } from 'sequelize-typescript';
 
 import { UserModel } from '@/user/models/user.model';
+import { ReminderSettingsModel } from '@/reminder/models/reminder-settings.model';
 import { RecurringPaymentType } from '@/common/enum';
 
 interface RecurringPayment {
@@ -139,4 +141,10 @@ export class RecurringPaymentModel extends Model<RecurringPayment> {
         as: 'user',
     })
     declare user: UserModel;
+
+    @HasOne(() => ReminderSettingsModel, {
+        foreignKey: 'recurring_payment_id',
+        as: 'reminder_settings',
+    })
+    declare reminder_settings: ReminderSettingsModel | null;
 }
